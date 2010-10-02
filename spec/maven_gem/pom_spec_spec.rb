@@ -4,8 +4,8 @@ require 'fileutils'
 describe MavenGem::PomSpec do
 
   before(:each) do
-    ant_path = File.join(FIXTURES, 'ant.pom')
-    @pom = MavenGem::PomFetcher.fetch(ant_path)
+    @pom             = MavenGem::PomFetcher.fetch("http://mirrors.ibiblio.org/pub/mirrors/maven2/ant/ant/1.6.5/ant-1.6.5.pom")
+    @hudson_rake_pom = MavenGem::PomFetcher.fetch('http://mirrors.ibiblio.org/pub/mirrors/maven2/org/jvnet/hudson/plugins/rake/1.7-SNAPSHOT/rake-1.7-SNAPSHOT.pom')
   end
 
   describe "maven_to_gem_version" do
@@ -113,8 +113,7 @@ describe MavenGem::PomSpec do
     end
 
     it "uses the version from the parent when its version doesn't exit" do
-      pom = MavenGem::PomFetcher.fetch(File.join(FIXTURES, 'hudson-rake.pom'))
-      pom_without_version = pom.gsub(/<version>1.7-SNAPSHOT<\/version>/, '')
+      pom_without_version = @hudson_rake_pom.gsub(/<version>1.7-SNAPSHOT<\/version>/, '')
 
       pom_spec = MavenGem::PomSpec.parse_pom(pom_without_version)
       pom_spec.version.should == '1.319'
@@ -143,16 +142,11 @@ describe MavenGem::PomSpec do
 
   describe "create_gem" do
     it "creates the gem file" do
-      begin
-        pom = ant_pom
-        spec = MavenGem::PomSpec.generate_spec(pom)
-        lambda {
-          MavenGem::PomSpec.create_gem(spec, pom)
-        }.should_not raise_error
-        File.exist?('ant.ant-1.6.5-java.gem').should be_true
-      ensure
-        FileUtils.rm_f('ant.ant-1.6.5-java.gem')
-      end
+      pom = ant_pom
+      spec = MavenGem::PomSpec.generate_spec(pom)
+      gem_file = MavenGem::PomSpec.create_gem(spec, pom, 'tmp')
+      gem_file.should == 'tmp/ant.ant-1.6.5-java.gem'
+      File.should exist(gem_file)
     end
 
     it "creates a ruby module with the artifact name" do
@@ -188,8 +182,7 @@ describe MavenGem::PomSpec do
   end
 
   def hudson_rake_pom
-    pom = MavenGem::PomFetcher.fetch(File.join(FIXTURES, 'hudson-rake.pom'))
-    MavenGem::PomSpec.parse_pom(pom)
+    MavenGem::PomSpec.parse_pom(@hudson_rake_pom)
   end
 
   def ant_pom

@@ -6,7 +6,7 @@ module MavenGem
     extend MavenGem::XmlUtils
 
     def self.build(location, to_dir, options)
-      pom_doc = MavenGem::PomFetcher.fetch(location, options)
+      pom_doc = MavenGem::PomFetcher.fetch(location)
       pom = MavenGem::PomSpec.parse_pom(pom_doc, options)
       spec = MavenGem::PomSpec.generate_spec(pom, options)
       MavenGem::PomSpec.create_gem(spec, pom, to_dir, options)
