@@ -5,11 +5,11 @@ module MavenGem
   class PomSpec
     extend MavenGem::XmlUtils
 
-    def self.build(location, to_dir, options)
+    def self.build(location, options)
       pom_doc = MavenGem::PomFetcher.fetch(location)
       pom = MavenGem::PomSpec.parse_pom(pom_doc, options)
       spec = MavenGem::PomSpec.generate_spec(pom, options)
-      MavenGem::PomSpec.create_gem(spec, pom, to_dir, options)
+      MavenGem::PomSpec.create_gem(spec, pom, options)
     end
 
     # Unless the maven version string is a valid Gem version string create a substitute
@@ -98,11 +98,12 @@ module MavenGem
       end
     end
 
-    def self.create_gem(spec, pom, to_dir, options = {})
+    def self.create_gem(spec, pom, options = {})
       gem_path = create_files(spec, pom, options)
-      raise "Not a dir: #{to_dir}" unless File.directory?(to_dir)
-      FileUtils.mv(gem_path, to_dir)
-      File.join(to_dir, File.basename(gem_path))
+      dir = options[:dir] || '.'
+      raise "Not a dir: #{to_dir}" unless File.directory?(dir)
+      FileUtils.mv(gem_path, dir)
+      File.join(dir, File.basename(gem_path))
     end
 
     def self.to_maven_url(group, artifact, version)

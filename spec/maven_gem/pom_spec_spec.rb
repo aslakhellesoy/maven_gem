@@ -6,6 +6,7 @@ describe MavenGem::PomSpec do
   before(:each) do
     @pom             = MavenGem::PomFetcher.fetch("http://mirrors.ibiblio.org/pub/mirrors/maven2/ant/ant/1.6.5/ant-1.6.5.pom")
     @hudson_rake_pom = MavenGem::PomFetcher.fetch('http://mirrors.ibiblio.org/pub/mirrors/maven2/org/jvnet/hudson/plugins/rake/1.7-SNAPSHOT/rake-1.7-SNAPSHOT.pom')
+    @gherkin_pom     = MavenGem::PomFetcher.fetch('http://mirrors.ibiblio.org/pub/mirrors/maven2/gherkin/gherkin/2.2.4/gherkin-2.2.4.pom')
   end
 
   describe "maven_to_gem_version" do
@@ -35,6 +36,10 @@ describe MavenGem::PomSpec do
       ant_pom.maven_version.should == '1.6.5'
       with_non_numeric_version = @pom.gsub(/<version>1.6.5<\/version>/, '<version>1.6.6-SNAPSHOT</version>')
       MavenGem::PomSpec.parse_pom(with_non_numeric_version).maven_version.should == '1.6.6-SNAPSHOT'
+    end
+
+    it "doesn't kill project.build.sourceEncoding elements" do
+      gherkin_pom.description.should == 'Pure Java Gherkin'
     end
 
     it "keeps the version number as version" do
@@ -78,7 +83,7 @@ describe MavenGem::PomSpec do
     end
 
     it "doesn't add authors when the node doesn't exist" do
-     ant_pom.authors.should be_empty
+      ant_pom.authors.should be_empty
     end
 
     it "uses parent groupId when groupId node doesn't exist" do
@@ -144,7 +149,7 @@ describe MavenGem::PomSpec do
     it "creates the gem file" do
       pom = ant_pom
       spec = MavenGem::PomSpec.generate_spec(pom)
-      gem_file = MavenGem::PomSpec.create_gem(spec, pom, 'tmp')
+      gem_file = MavenGem::PomSpec.create_gem(spec, pom, {:dir => 'tmp'})
       gem_file.should == 'tmp/ant.ant-1.6.5-java.gem'
       File.should exist(gem_file)
     end
@@ -187,6 +192,10 @@ describe MavenGem::PomSpec do
 
   def ant_pom
     MavenGem::PomSpec.parse_pom(@pom)
+  end
+
+  def gherkin_pom
+    MavenGem::PomSpec.parse_pom(@gherkin_pom)
   end
 
   def within_tmp_directory

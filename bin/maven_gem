@@ -15,10 +15,10 @@ maven_gem_error unless ARGV.length >= 1
 case ARGV.shift
 when 'install'
   maven_gem_error unless ARGV.length >= 1
-  MavenGem.install *ARGV
+  MavenGem.install *(ARGV.dup + [{}])
 when 'build'
   maven_gem_error unless ARGV.length >= 1
-  MavenGem.build *ARGV
+  MavenGem.build *(ARGV.dup + [{}])
 else
   maven_gem_error
 end

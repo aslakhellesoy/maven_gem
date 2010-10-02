@@ -9,7 +9,7 @@ module MavenGem
     private
 
     def self.clean_pom(pom) #avoid namespaces errors and gotchas
-      pom.gsub(/<project[^>]+/, '<project>')
+      pom.gsub(/<project\s[^>]+/, '<project>')
     end
   end
 end
