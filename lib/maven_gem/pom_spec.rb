@@ -5,11 +5,11 @@ module MavenGem
   class PomSpec
     extend MavenGem::XmlUtils
 
-    def self.build(location)
-      pom_doc = MavenGem::PomFetcher.fetch(location)
-      pom = MavenGem::PomSpec.parse_pom(pom_doc)
-      spec = MavenGem::PomSpec.generate_spec(pom)
-      MavenGem::PomSpec.create_gem(spec, pom)
+    def self.build(location, to_dir, options)
+      pom_doc = MavenGem::PomFetcher.fetch(location, options)
+      pom = MavenGem::PomSpec.parse_pom(pom_doc, options)
+      spec = MavenGem::PomSpec.generate_spec(pom, options)
+      MavenGem::PomSpec.create_gem(spec, pom, to_dir, options)
     end
 
     # Unless the maven version string is a valid Gem version string create a substitute
@@ -75,6 +75,7 @@ module MavenGem
       pom.name = maven_to_gem_name(pom.group, pom.artifact)
       pom.lib_name = "#{pom.artifact}.rb"
       pom.gem_name = "#{pom.name}-#{pom.version}"
+      pom.gemspec_file = "#{pom.name}.gemspec"
       pom.jar_file = "#{pom.artifact}-#{pom.maven_version}.jar"
       pom.remote_dir = "#{pom.group.gsub('.', '/')}/#{pom.artifact}/#{pom.version}"
       pom.remote_jar_url = "#{maven_base_url}/#{pom.remote_dir}/#{pom.jar_file}"
@@ -90,16 +91,18 @@ module MavenGem
         pom.dependencies.each {|dep| specification.dependencies << dep}
         specification.authors = pom.authors
         specification.description = pom.description
+        specification.summary = "#{pom.name}-#{pom.version}"
         specification.homepage = pom.url
 
         specification.files = ["lib/#{pom.lib_name}", "lib/#{pom.jar_file}"]
       end
     end
 
-    def self.create_gem(spec, pom, options = {})
-        gem_dir = create_files(spec, pom, options)
-      ensure
-        FileUtils.rm_r(gem_dir) if gem_dir
+    def self.create_gem(spec, pom, to_dir, options = {})
+      gem_path = create_files(spec, pom, options)
+      raise "Not a dir: #{to_dir}" unless File.directory?(to_dir)
+      FileUtils.mv(gem_path, to_dir)
+      File.join(to_dir, File.basename(gem_path))
     end
 
     def self.to_maven_url(group, artifact, version)
@@ -117,10 +120,9 @@ module MavenGem
 
       ruby_file_contents(gem_dir, pom, options)
       jar_file_contents(gem_dir, pom, options)
-      metadata_contents(gem_dir, specification, pom, options)
-      gem_contents(gem_dir, pom, options)
-
-      gem_dir
+      gemspec_contents(gem_dir, specification, pom, options)
+      gem_base_name = build_gem(gem_dir, pom, options)
+      File.join(gem_dir, gem_base_name)
     end
 
     def self.create_tmp_directories(pom, options = {})
@@ -163,21 +165,20 @@ HEREDOC
       File.open("#{gem_dir}/lib/#{pom.jar_file}", 'w') {|f| f.write(jar_contents)}
     end
 
-    def self.metadata_contents(gem_dir, spec, pom, options = {})
-      metadata_file = "#{gem_dir}/metadata"
-      puts "Writing #{metadata_file}" if options[:verbose]
-      File.open(metadata_file, 'w') do |file|
-        file.write(spec.to_yaml)
+    def self.gemspec_contents(gem_dir, spec, pom, options = {})
+      gemspec_file = "#{gem_dir}/#{pom.gemspec_file}"
+      puts "Writing #{gemspec_file}" if options[:verbose]
+      File.open(gemspec_file, 'w') do |file|
+        file.write(spec.to_ruby)
       end
     end
 
-    def self.gem_contents(gem_dir, pom, options = {})
+    # Builds the gem and returns its base filename
+    def self.build_gem(gem_dir, pom, options = {})
       puts "Building #{pom.gem_file}" if options[:verbose]
       Dir.chdir(gem_dir) do
-        fail unless
-          system('gzip metadata') and
-          system('tar czf data.tar.gz lib/*') and
-          system("tar cf ../#{pom.gem_file} data.tar.gz metadata.gz")
+        spec = Gem::Specification.load(pom.gemspec_file)
+        Gem::Builder.new(spec).build
       end
     end
 

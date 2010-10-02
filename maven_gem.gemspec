@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rspec', '~> 2.0.0.beta.22'
   s.add_development_dependency 'mocha', '~> 0.9.8'
+  s.add_development_dependency 'webmock', '~> 1.3.5'
 
   s.rubygems_version   = "1.3.7"
   s.files            = `git ls-files`.split("\n")

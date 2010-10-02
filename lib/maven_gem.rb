@@ -8,19 +8,19 @@ require 'rubygems'
 require 'rubygems/gem_runner'
 
 module MavenGem
-  def self.install(group, artifact = nil, version = nil)
-    gem = build(group, artifact, version)
+  def self.install(group, artifact, version, options)
+    gem = build(group, artifact, version, '.', options)
     Gem::GemRunner.new.run(["install", gem])
   ensure
     FileUtils.rm_f(gem) if gem
   end
 
-  def self.build(group, artifact = nil, version = nil)
+  def self.build(group, artifact, version, to_dir, options)
     gem = if artifact
       url = MavenGem::PomSpec.to_maven_url(group, artifact, version)
-      MavenGem::PomSpec.build(url)
+      MavenGem::PomSpec.build(url, to_dir, options)
     else
-      MavenGem::PomSpec.build(group)
+      MavenGem::PomSpec.build(group, to_dir, options)
     end
   end
 end
