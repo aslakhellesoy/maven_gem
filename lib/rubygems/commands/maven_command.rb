@@ -25,8 +25,6 @@ class Gem::Commands::MavenCommand < Gem::Command
 
   def execute
     args = options[:args]
-p args
-p options
     MavenGem.install(*(args + [options]))
   end
 
